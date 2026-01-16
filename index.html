@@ -5,13 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>2026 日本購物心願清單</title>
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
 
     <style>
@@ -19,8 +16,6 @@
             --bg-main: #fafaf9;
             --card-bg: #ffffff;
             --text-main: #44403c;
-            --accent-blue: #3b82f6;
-            --accent-green: #10b981;
         }
         
         body {
@@ -30,101 +25,90 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        .item-card {
-            transition: all 0.2s ease;
-        }
-        
-        .item-card:active {
-            transform: scale(0.98);
-        }
+        .item-card { transition: all 0.2s ease; }
+        .item-card:active { transform: scale(0.98); }
+        .purchased-card { background-color: #f0fdf4; border-color: #86efac; }
+        .purchased-text { text-decoration: line-through; color: #a8a29e; }
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
 
-        .purchased-card {
-            background-color: #f0fdf4;
-            border-color: #86efac;
-        }
+        /* 隱藏捲軸但保留功能 */
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        .purchased-text {
-            text-decoration: line-through;
-            color: #a8a29e;
-        }
-
-        .pb-safe {
-            padding-bottom: env(safe-area-inset-bottom, 20px);
-        }
-
-        .animate-fade-in {
-            animation: fadeIn 0.3s ease-in-out;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(5px); }
-            to { opacity: 1; transform: translateY(0); }
+        /* Modal 優化：解決跑版 */
+        #modalContent {
+            max-height: 90vh;
+            overflow-y: auto;
         }
     </style>
 </head>
 <body class="pb-32">
 
-    <!-- Header -->
     <header class="bg-white shadow-sm sticky top-0 z-30">
-        <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center gap-2">
-                <div class="w-8 h-8 bg-stone-800 rounded-lg flex items-center justify-center text-white">
-                    <i class="fa-solid fa-shopping-bag"></i>
+                <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white">
+                    <i class="fa-solid fa-plane"></i>
                 </div>
-                <h1 class="font-bold text-lg text-stone-800 tracking-tight">2026 日本購物清單</h1>
+                <h1 class="font-bold text-lg text-stone-800 tracking-tight">2026 日本清單</h1>
             </div>
             
             <div class="flex items-center gap-2 bg-stone-100 px-3 py-1.5 rounded-full border border-stone-200">
-                <span class="text-xs font-medium text-stone-500">¥1 =</span>
+                <span class="text-[10px] font-medium text-stone-500">匯率 ¥1 =</span>
                 <input type="number" id="exchangeRateInput" step="0.0001" class="w-14 bg-transparent text-right font-bold text-blue-600 focus:outline-none border-b border-blue-300 text-sm" value="0.2150">
-                <span class="text-xs font-bold text-stone-600">TWD</span>
+            </div>
+        </div>
+        
+        <div class="bg-white border-t border-stone-100 px-4 py-2">
+            <div class="flex gap-2 overflow-x-auto hide-scrollbar py-1" id="categoryFilterBar">
+                <button onclick="filterCategory('all')" id="cat-all" class="cat-btn whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold bg-stone-800 text-white shadow-sm">全部</button>
+                <button onclick="filterCategory('藥')" id="cat-藥" class="cat-btn whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold bg-white text-stone-500 border border-stone-200">藥品</button>
+                <button onclick="filterCategory('妝')" id="cat-妝" class="cat-btn whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold bg-white text-stone-500 border border-stone-200">美妝</button>
+                <button onclick="filterCategory('必吃')" id="cat-必吃" class="cat-btn whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold bg-white text-stone-500 border border-stone-200">必吃</button>
+                <button onclick="filterCategory('其他')" id="cat-其他" class="cat-btn whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold bg-white text-stone-500 border border-stone-200">其他</button>
             </div>
         </div>
     </header>
 
-    <!-- Main -->
-    <main class="max-w-4xl mx-auto px-4 py-6 space-y-6">
+    <main class="max-w-4xl mx-auto px-4 py-4 space-y-4">
 
-        <!-- Controls -->
-        <section class="flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div class="flex gap-2 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
-                <button onclick="filterList('all')" id="filter-all" class="whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium bg-stone-800 text-white transition-colors">全部</button>
-                <button onclick="filterList('pending')" id="filter-pending" class="whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium bg-white text-stone-600 border border-stone-200 hover:bg-stone-50 transition-colors">未購</button>
-                <button onclick="filterList('bought')" id="filter-bought" class="whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium bg-white text-stone-600 border border-stone-200 hover:bg-stone-50 transition-colors">已購</button>
+        <section class="flex justify-between items-center gap-4">
+            <div class="flex bg-stone-200/50 p-1 rounded-xl">
+                <button onclick="filterStatus('all')" id="filter-all" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-white text-stone-800 shadow-sm transition-all">全體</button>
+                <button onclick="filterStatus('pending')" id="filter-pending" class="px-4 py-1.5 rounded-lg text-xs font-bold text-stone-500 transition-all">未購</button>
+                <button onclick="filterStatus('bought')" id="filter-bought" class="px-4 py-1.5 rounded-lg text-xs font-bold text-stone-500 transition-all">已購</button>
             </div>
-            <button onclick="openModal()" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-blue-200 transform transition active:scale-95 flex items-center justify-center gap-2">
-                <i class="fa-solid fa-plus"></i> <span>新增心願</span>
+            <button onclick="openModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-xl text-sm font-bold shadow-lg shadow-indigo-100 flex items-center gap-2">
+                <i class="fa-solid fa-plus"></i> <span>新增</span>
             </button>
         </section>
 
-        <!-- List Grid -->
-        <section id="listContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <!-- 這裡會由 JS 動態生成項目 -->
-        </section>
+        <section id="listContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            </section>
 
     </main>
 
-    <!-- Footer Summary -->
-    <div class="fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-md border-t border-stone-200 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-20 pb-safe">
-        <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
+    <div class="fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-md border-t border-stone-200 shadow-xl z-20 pb-safe">
+        <div class="max-w-4xl mx-auto px-6 py-4 flex justify-between items-center">
             <div>
-                <p class="text-[10px] uppercase tracking-wider text-stone-400 font-bold">預估總金額</p>
-                <p id="footerTotalEst" class="text-xl font-bold text-stone-800">0</p>
+                <p class="text-[10px] uppercase tracking-wider text-stone-400 font-bold">預計總額</p>
+                <p id="footerTotalEst" class="text-xl font-bold text-stone-800">$0</p>
             </div>
+            <div class="h-8 w-px bg-stone-200"></div>
             <div class="text-right">
-                <p class="text-[10px] uppercase tracking-wider text-emerald-500 font-bold">已購總支出</p>
-                <p id="footerTotalAct" class="text-xl font-black text-emerald-600">0</p>
+                <p class="text-[10px] uppercase tracking-wider text-emerald-500 font-bold">已購支出</p>
+                <p id="footerTotalAct" class="text-xl font-black text-emerald-600">$0</p>
             </div>
         </div>
     </div>
 
-    <!-- Modal -->
-    <div id="itemModal" class="fixed inset-0 z-50 hidden">
+    <div id="itemModal" class="fixed inset-0 z-50 hidden flex items-end md:items-center justify-center">
         <div class="absolute inset-0 bg-stone-900/60 backdrop-blur-sm" onclick="closeModal()"></div>
-        <div class="absolute inset-x-0 bottom-0 md:top-1/2 md:bottom-auto md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 w-full md:w-[500px] bg-white md:rounded-2xl rounded-t-2xl shadow-2xl p-6 transition-all transform duration-300 translate-y-full md:translate-y-0" id="modalContent">
+        <div id="modalContent" class="relative w-full md:w-[500px] bg-white md:rounded-2xl rounded-t-3xl shadow-2xl p-6 transition-all transform translate-y-full">
             
             <div class="flex justify-between items-center mb-5">
                 <h3 id="modalTitle" class="text-xl font-bold text-stone-800">新增商品</h3>
-                <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-stone-100 text-stone-500 hover:bg-stone-200 flex items-center justify-center">
+                <button onclick="closeModal()" class="w-10 h-10 rounded-full bg-stone-100 text-stone-500 flex items-center justify-center">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
@@ -133,67 +117,78 @@
             
             <div class="space-y-4">
                 <div>
-                    <label class="block text-xs font-bold text-stone-500 mb-1">商品名稱</label>
-                    <input id="inputName" type="text" class="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 font-bold text-stone-800" placeholder="例如：合利他命 EX Plus">
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-stone-500 mb-1">日幣價格 (JPY)</label>
-                        <div class="relative">
-                            <span class="absolute left-3 top-3 text-stone-400 text-sm">¥</span>
-                            <input id="inputJpy" type="number" class="w-full p-3 pl-7 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="0">
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-stone-500 mb-1">台灣市價 (TWD)</label>
-                        <div class="relative">
-                            <span class="absolute left-3 top-3 text-stone-400 text-sm">$</span>
-                            <input id="inputTwd" type="number" class="w-full p-3 pl-7 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="0">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="p-4 bg-stone-50 rounded-xl border border-stone-100">
-                    <label class="flex items-center gap-2 cursor-pointer mb-2">
-                        <input id="inputPurchased" type="checkbox" class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500" onchange="toggleActualPriceInput()">
-                        <span class="font-bold text-stone-700 text-sm">我已經買到了</span>
-                    </label>
-                    <div id="actualPriceContainer" class="hidden mt-2 animate-fade-in">
-                        <label class="block text-xs text-stone-500 mb-1">實際購入價 (JPY)</label>
-                        <input id="inputJpyActual" type="number" class="w-full p-2 bg-white border border-stone-200 rounded-lg text-blue-800 font-bold" placeholder="留空則使用預估價">
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-stone-500 mb-1">備註 / 店鋪</label>
-                    <textarea id="inputNote" rows="2" class="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm" placeholder="細節資訊..."></textarea>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-stone-500 mb-1">照片</label>
-                    <div class="flex items-center gap-4">
-                        <div id="modalImgPreviewBox" class="w-20 h-20 bg-stone-100 rounded-xl border border-stone-200 overflow-hidden flex items-center justify-center relative shadow-inner">
-                            <i class="fa-regular fa-image text-stone-300 text-2xl" id="modalImgPlaceholder"></i>
-                            <img id="modalImgDisplay" class="w-full h-full object-cover hidden">
-                            <button type="button" onclick="clearImage()" id="clearImgBtn" class="hidden absolute top-0 right-0 bg-stone-800/60 text-white w-6 h-6 flex items-center justify-center rounded-bl-lg text-xs">
-                                <i class="fa-solid fa-times"></i>
-                            </button>
-                        </div>
-                        <label class="flex-1 cursor-pointer bg-white border border-dashed border-stone-300 hover:bg-stone-50 text-stone-500 rounded-xl h-20 flex flex-col items-center justify-center transition-colors">
-                            <i class="fa-solid fa-camera mb-1"></i>
-                            <span class="text-xs">上傳照片</span>
-                            <input type="file" id="inputImgFile" accept="image/*" class="hidden" onchange="handleFileSelect(this)">
+                    <label class="block text-xs font-bold text-stone-500 mb-2">選擇類別</label>
+                    <div class="flex gap-2" id="inputCategoryGroup">
+                        <label class="flex-1">
+                            <input type="radio" name="category" value="藥" class="hidden peer" checked>
+                            <div class="text-center py-2 rounded-lg border border-stone-200 text-sm font-bold peer-checked:bg-blue-50 peer-checked:border-blue-500 peer-checked:text-blue-600 cursor-pointer">藥品</div>
+                        </label>
+                        <label class="flex-1">
+                            <input type="radio" name="category" value="妝" class="hidden peer">
+                            <div class="text-center py-2 rounded-lg border border-stone-200 text-sm font-bold peer-checked:bg-pink-50 peer-checked:border-pink-500 peer-checked:text-pink-600 cursor-pointer">美妝</div>
+                        </label>
+                        <label class="flex-1">
+                            <input type="radio" name="category" value="必吃" class="hidden peer">
+                            <div class="text-center py-2 rounded-lg border border-stone-200 text-sm font-bold peer-checked:bg-orange-50 peer-checked:border-orange-500 peer-checked:text-orange-600 cursor-pointer">必吃</div>
+                        </label>
+                        <label class="flex-1">
+                            <input type="radio" name="category" value="其他" class="hidden peer">
+                            <div class="text-center py-2 rounded-lg border border-stone-200 text-sm font-bold peer-checked:bg-stone-100 peer-checked:border-stone-500 peer-checked:text-stone-800 cursor-pointer">其他</div>
                         </label>
                     </div>
                 </div>
 
-                <div class="flex gap-3 pt-4">
-                    <button type="button" onclick="deleteCurrentItem()" id="btnDelete" class="hidden px-5 py-3 bg-rose-50 text-rose-500 rounded-xl font-bold hover:bg-rose-100 transition-colors">
+                <div>
+                    <label class="block text-xs font-bold text-stone-500 mb-1">商品名稱</label>
+                    <input id="inputName" type="text" class="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold" placeholder="請輸入名稱">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-stone-500 mb-1">日幣預估 (JPY)</label>
+                        <input id="inputJpy" type="number" class="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none" placeholder="¥ 0">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-stone-500 mb-1">備註資訊</label>
+                        <input id="inputNote" type="text" class="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none" placeholder="店鋪或規格">
+                    </div>
+                </div>
+
+                <div class="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
+                    <label class="flex items-center gap-2 cursor-pointer mb-2">
+                        <input id="inputPurchased" type="checkbox" class="w-5 h-5 accent-emerald-600" onchange="toggleActualPriceInput()">
+                        <span class="font-bold text-emerald-800 text-sm">我已經買到了</span>
+                    </label>
+                    <div id="actualPriceContainer" class="hidden mt-2 animate-fade-in">
+                        <label class="block text-xs text-emerald-600 mb-1 font-bold">實際購入日幣 (JPY)</label>
+                        <input id="inputJpyActual" type="number" class="w-full p-2 bg-white border border-emerald-200 rounded-lg text-emerald-800 font-bold outline-none" placeholder="留空則同預估價">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-stone-500 mb-2">上傳照片 (點擊下方區域)</label>
+                    <div class="flex items-center gap-3">
+                        <div id="modalImgPreviewBox" class="w-16 h-16 bg-stone-100 rounded-xl border overflow-hidden flex items-center justify-center relative">
+                            <i class="fa-regular fa-image text-stone-300 text-xl" id="modalImgPlaceholder"></i>
+                            <img id="modalImgDisplay" class="w-full h-full object-cover hidden">
+                        </div>
+                        <label class="flex-1 cursor-pointer bg-stone-50 border-2 border-dashed border-stone-200 hover:bg-stone-100 rounded-xl h-16 flex flex-col items-center justify-center">
+                            <i class="fa-solid fa-camera text-stone-400"></i>
+                            <span class="text-[10px] text-stone-500 mt-1 font-bold">點擊上傳</span>
+                            <input type="file" id="inputImgFile" accept="image/*" class="hidden" onchange="handleFileSelect(this)">
+                        </label>
+                        <button type="button" onclick="clearImage()" id="clearImgBtn" class="hidden w-10 h-16 bg-rose-50 text-rose-500 rounded-xl flex items-center justify-center">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex gap-3 pt-2">
+                    <button type="button" onclick="deleteCurrentItem()" id="btnDelete" class="hidden px-5 py-3 bg-rose-50 text-rose-500 rounded-xl font-bold">
                         <i class="fa-solid fa-trash-can"></i>
                     </button>
-                    <button type="button" onclick="saveItem()" id="btnSave" class="flex-1 bg-stone-800 text-white py-3 rounded-xl font-bold shadow-lg shadow-stone-200 active:scale-95 transition-transform">
-                        儲存項目
+                    <button type="button" onclick="saveItem()" id="btnSave" class="flex-1 bg-stone-800 text-white py-4 rounded-xl font-bold shadow-lg active:scale-95 transition-transform">
+                        儲存心願
                     </button>
                 </div>
             </div>
@@ -205,51 +200,37 @@
         let state = {
             rate: 0.2150,
             items: [],
-            filter: 'all'
+            statusFilter: 'all',
+            categoryFilter: 'all'
         };
 
-        let db = null;
-        const DB_NAME = 'JapanWishlistDB_2026_Fixed';
-        const DB_VERSION = 1;
         const STORE_NAME = 'images';
+        const DB_NAME = 'JapanWishlistDB_2026';
+        let db = null;
 
-        // --- Database Helper ---
+        // --- Database ---
         async function getDB() {
-            if (db && db.readyState !== 'closed') return db;
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open(DB_NAME, DB_VERSION);
+            if (db) return db;
+            return new Promise((resolve) => {
+                const request = indexedDB.open(DB_NAME, 1);
                 request.onupgradeneeded = (e) => {
                     const database = e.target.result;
-                    if (!database.objectStoreNames.contains(STORE_NAME)) {
-                        database.createObjectStore(STORE_NAME);
-                    }
+                    if (!database.objectStoreNames.contains(STORE_NAME)) database.createObjectStore(STORE_NAME);
                 };
-                request.onsuccess = (e) => {
-                    db = e.target.result;
-                    resolve(db);
-                };
-                request.onerror = (e) => reject(e.target.error);
+                request.onsuccess = (e) => { db = e.target.result; resolve(db); };
             });
         }
 
-        // --- Initialize ---
+        // --- Init ---
         window.addEventListener('load', async () => {
-            // Load Rate
             const savedRate = localStorage.getItem('exchangeRate_2026');
             if (savedRate) {
                 state.rate = parseFloat(savedRate);
                 document.getElementById('exchangeRateInput').value = state.rate;
             }
-
-            // Load Items
             const savedItems = localStorage.getItem('wishlist_items_2026');
-            if (savedItems) {
-                state.items = JSON.parse(savedItems);
-            }
+            if (savedItems) state.items = JSON.parse(savedItems);
 
-            render();
-
-            // Rate listener
             document.getElementById('exchangeRateInput').addEventListener('input', (e) => {
                 const val = parseFloat(e.target.value);
                 if (val > 0) {
@@ -258,241 +239,213 @@
                     render();
                 }
             });
+            render();
         });
 
-        // --- Item Actions ---
-
-        async function saveItem() {
-            const btn = document.getElementById('btnSave');
-            btn.disabled = true;
-            btn.innerText = '儲存中...';
-
-            try {
-                const id = document.getElementById('editId').value || Date.now().toString();
-                const name = document.getElementById('inputName').value.trim();
-                if (!name) {
-                    alert('請輸入商品名稱');
-                    return;
-                }
-
-                const jpy = parseFloat(document.getElementById('inputJpy').value) || 0;
-                const twd = parseFloat(document.getElementById('inputTwd').value) || 0;
-                const note = document.getElementById('inputNote').value;
-                const isPurchased = document.getElementById('inputPurchased').checked;
-                
-                let jpyActual = 0;
-                if (isPurchased) {
-                    const inputActual = parseFloat(document.getElementById('inputJpyActual').value);
-                    jpyActual = isNaN(inputActual) || inputActual === 0 ? jpy : inputActual;
-                }
-
-                const existingIndex = state.items.findIndex(i => i.id === id);
-                const fileInput = document.getElementById('inputImgFile');
-                const hasNewImage = fileInput.files.length > 0;
-                const isImgCleared = document.getElementById('modalImgDisplay').classList.contains('hidden');
-
-                const newItem = {
-                    id,
-                    name,
-                    jpyPlan: jpy,
-                    twdPlan: twd,
-                    jpyActual: isPurchased ? jpyActual : 0,
-                    note,
-                    purchased: isPurchased,
-                    hasImage: hasNewImage ? true : (isImgCleared ? false : (existingIndex >= 0 ? state.items[existingIndex].hasImage : false))
-                };
-
-                // Handle Image Storage
-                if (hasNewImage || isImgCleared) {
-                    const database = await getDB();
-                    const tx = database.transaction(STORE_NAME, 'readwrite');
-                    const store = tx.objectStore(STORE_NAME);
-                    
-                    if (hasNewImage) {
-                        await new Promise((res, rej) => {
-                            const req = store.put(fileInput.files[0], id);
-                            req.onsuccess = res;
-                            req.onerror = rej;
-                        });
-                    } else if (isImgCleared) {
-                        await new Promise((res) => {
-                            const req = store.delete(id);
-                            req.onsuccess = res;
-                            req.onerror = res;
-                        });
-                    }
-                }
-
-                if (existingIndex >= 0) {
-                    state.items[existingIndex] = newItem;
-                } else {
-                    state.items.push(newItem);
-                }
-
-                localStorage.setItem('wishlist_items_2026', JSON.stringify(state.items));
-                closeModal();
-                render();
-            } catch (err) {
-                console.error(err);
-                alert('資料庫存取失敗，請重啟網頁試試。');
-            } finally {
-                btn.disabled = false;
-                btn.innerText = '儲存項目';
-            }
+        // --- Logic ---
+        function filterStatus(f) {
+            state.statusFilter = f;
+            updateFilterUI('filter', f, 'status');
+            render();
         }
 
-        async function deleteCurrentItem() {
-            const id = document.getElementById('editId').value;
-            if (!id) return;
-            if (confirm('確定要從清單中移除這個項目嗎？')) {
-                state.items = state.items.filter(i => i.id !== id);
-                try {
-                    const database = await getDB();
-                    const tx = database.transaction(STORE_NAME, 'readwrite');
-                    tx.objectStore(STORE_NAME).delete(id);
-                } catch(e) {}
-                localStorage.setItem('wishlist_items_2026', JSON.stringify(state.items));
-                closeModal();
-                render();
+        function filterCategory(c) {
+            state.categoryFilter = c;
+            updateFilterUI('cat', c, 'category');
+            render();
+        }
+
+        function updateFilterUI(prefix, current, type) {
+            const btns = type === 'status' ? ['all', 'pending', 'bought'] : ['all', '藥', '妝', '必吃', '其他'];
+            btns.forEach(val => {
+                const el = document.getElementById(`${prefix}-${val}`);
+                if (!el) return;
+                if (val === current) {
+                    el.className = el.className.replace('bg-white text-stone-500 border border-stone-200', 'bg-stone-800 text-white shadow-sm');
+                    el.className = el.className.replace('text-stone-500', 'bg-white text-stone-800 shadow-sm');
+                } else {
+                    el.className = el.className.replace('bg-stone-800 text-white shadow-sm', 'bg-white text-stone-500 border border-stone-200');
+                    el.classList.add('text-stone-500');
+                    el.classList.remove('bg-white', 'text-stone-800', 'shadow-sm');
+                }
+            });
+        }
+
+        async function saveItem() {
+            const name = document.getElementById('inputName').value.trim();
+            if (!name) return alert('請輸入名稱');
+
+            const id = document.getElementById('editId').value || Date.now().toString();
+            const category = document.querySelector('input[name="category"]:checked').value;
+            const jpy = parseFloat(document.getElementById('inputJpy').value) || 0;
+            const note = document.getElementById('inputNote').value;
+            const isPurchased = document.getElementById('inputPurchased').checked;
+            const jpyActualInput = parseFloat(document.getElementById('inputJpyActual').value);
+            const jpyActual = isPurchased ? (isNaN(jpyActualInput) || jpyActualInput === 0 ? jpy : jpyActualInput) : 0;
+
+            const fileInput = document.getElementById('inputImgFile');
+            const hasNewImage = fileInput.files.length > 0;
+            const isImgCleared = document.getElementById('modalImgDisplay').classList.contains('hidden');
+
+            const existingItem = state.items.find(i => i.id === id);
+            
+            const newItem = {
+                id, name, category, jpyPlan: jpy, note, purchased: isPurchased, jpyActual,
+                hasImage: hasNewImage ? true : (isImgCleared ? false : (existingItem ? existingItem.hasImage : false))
+            };
+
+            if (hasNewImage) {
+                const database = await getDB();
+                const tx = database.transaction(STORE_NAME, 'readwrite');
+                await tx.objectStore(STORE_NAME).put(fileInput.files[0], id);
+            } else if (isImgCleared) {
+                const database = await getDB();
+                const tx = database.transaction(STORE_NAME, 'readwrite');
+                await tx.objectStore(STORE_NAME).delete(id);
             }
+
+            const idx = state.items.findIndex(i => i.id === id);
+            if (idx >= 0) state.items[idx] = newItem;
+            else state.items.push(newItem);
+
+            localStorage.setItem('wishlist_items_2026', JSON.stringify(state.items));
+            closeModal();
+            render();
         }
 
         function toggleItemStatus(id) {
             const item = state.items.find(i => i.id === id);
             if (item) {
                 item.purchased = !item.purchased;
-                if (item.purchased && !item.jpyActual) {
-                    item.jpyActual = item.jpyPlan;
-                }
+                if (item.purchased && !item.jpyActual) item.jpyActual = item.jpyPlan;
                 localStorage.setItem('wishlist_items_2026', JSON.stringify(state.items));
                 render();
             }
         }
 
-        // --- UI Rendering ---
+        async function deleteCurrentItem() {
+            const id = document.getElementById('editId').value;
+            if (confirm('確定刪除？')) {
+                state.items = state.items.filter(i => i.id !== id);
+                const database = await getDB();
+                database.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).delete(id);
+                localStorage.setItem('wishlist_items_2026', JSON.stringify(state.items));
+                closeModal();
+                render();
+            }
+        }
 
+        // --- UI ---
         function render() {
             const container = document.getElementById('listContainer');
             container.innerHTML = '';
 
-            let totalEstTwd = 0;
-            let totalActTwd = 0;
+            let totalEst = 0;
+            let totalAct = 0;
 
             const filtered = state.items.filter(i => {
-                if (state.filter === 'pending') return !i.purchased;
-                if (state.filter === 'bought') return i.purchased;
-                return true;
+                const sMatch = state.statusFilter === 'all' || (state.statusFilter === 'pending' ? !i.purchased : i.purchased);
+                const cMatch = state.categoryFilter === 'all' || i.category === state.categoryFilter;
+                return sMatch && cMatch;
             });
 
             state.items.forEach(i => {
-                totalEstTwd += Math.round(i.jpyPlan * state.rate);
-                if (i.purchased) {
-                    totalActTwd += Math.round(i.jpyActual * state.rate);
-                }
+                totalEst += Math.round(i.jpyPlan * state.rate);
+                if (i.purchased) totalAct += Math.round(i.jpyActual * state.rate);
             });
 
+            document.getElementById('footerTotalEst').innerText = '$' + totalEst.toLocaleString();
+            document.getElementById('footerTotalAct').innerText = '$' + totalAct.toLocaleString();
+
             if (filtered.length === 0) {
-                container.innerHTML = `<div class="col-span-full py-20 text-center text-stone-400">目前沒有相關項目</div>`;
+                container.innerHTML = `<div class="col-span-full py-10 text-center text-stone-400 text-sm">沒有找到項目</div>`;
+                return;
             }
 
             filtered.forEach(item => {
-                const planTwd = Math.round(item.jpyPlan * state.rate);
-                const actualTwd = Math.round(item.jpyActual * state.rate);
-
+                const catColors = { '藥': 'bg-blue-100 text-blue-600', '妝': 'bg-pink-100 text-pink-600', '必吃': 'bg-orange-100 text-orange-600', '其他': 'bg-stone-100 text-stone-600' };
                 const card = document.createElement('div');
-                card.className = `item-card relative bg-white rounded-2xl p-4 shadow-sm border ${item.purchased ? 'purchased-card border-emerald-200' : 'border-stone-100'}`;
-                
+                card.className = `item-card relative bg-white rounded-2xl p-4 shadow-sm border border-stone-100 flex gap-3 ${item.purchased ? 'purchased-card' : ''}`;
                 card.innerHTML = `
-                    <div class="flex gap-4">
-                        <div id="img-slot-${item.id}" class="w-20 h-20 rounded-xl bg-stone-100 flex-shrink-0 flex items-center justify-center text-stone-300 cursor-pointer overflow-hidden border border-stone-100" onclick="openEditModal('${item.id}')">
-                            <i class="fa-solid fa-image"></i>
+                    <div id="img-${item.id}" class="w-16 h-16 rounded-xl bg-stone-50 flex-shrink-0 flex items-center justify-center text-stone-200 overflow-hidden border border-stone-100 cursor-pointer" onclick="openEditModal('${item.id}')">
+                        <i class="fa-solid fa-image"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-0.5">
+                            <span class="text-[9px] px-1.5 py-0.5 rounded-md font-black uppercase ${catColors[item.category] || catColors['其他']}">${item.category || '其他'}</span>
+                            <h3 class="font-bold text-stone-800 truncate text-sm ${item.purchased ? 'purchased-text' : ''}">${item.name}</h3>
                         </div>
-                        <div class="flex-1 min-w-0">
-                            <div class="cursor-pointer" onclick="openEditModal('${item.id}')">
-                                <h3 class="font-bold text-stone-800 truncate ${item.purchased ? 'purchased-text' : ''}">${item.name}</h3>
-                                <p class="text-[10px] text-stone-400 truncate mb-2">${item.note || '無備註'}</p>
+                        <p class="text-[10px] text-stone-400 truncate mb-1">${item.note || '無備註'}</p>
+                        <div class="flex justify-between items-end">
+                            <div>
+                                <span class="font-black text-sm text-stone-800">¥${(item.purchased ? item.jpyActual : item.jpyPlan).toLocaleString()}</span>
+                                <span class="text-[10px] text-stone-500 ml-1">≈$${Math.round((item.purchased ? item.jpyActual : item.jpyPlan) * state.rate).toLocaleString()}</span>
                             </div>
-                            <div class="flex justify-between items-end">
-                                <div>
-                                    <div class="font-bold text-lg ${item.purchased ? 'text-emerald-700' : 'text-stone-800'}">¥${(item.purchased ? item.jpyActual : item.jpyPlan).toLocaleString()}</div>
-                                    <div class="text-[10px] text-stone-500">NT$${(item.purchased ? actualTwd : planTwd).toLocaleString()}</div>
-                                </div>
-                                <button onclick="toggleItemStatus('${item.id}')" class="w-9 h-9 rounded-full border flex items-center justify-center transition-all ${item.purchased ? 'bg-emerald-500 border-emerald-500 text-white shadow-md' : 'bg-white border-stone-300 text-stone-300'}">
-                                    <i class="fa-solid fa-check"></i>
-                                </button>
-                            </div>
+                            <button onclick="toggleItemStatus('${item.id}')" class="w-7 h-7 rounded-full flex items-center justify-center border transition-all ${item.purchased ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-white border-stone-200 text-stone-200'}">
+                                <i class="fa-solid fa-check text-[10px]"></i>
+                            </button>
                         </div>
                     </div>
                 `;
                 container.appendChild(card);
-                if (item.hasImage) loadCardImage(item.id);
+                if (item.hasImage) loadCardImg(item.id);
             });
-
-            document.getElementById('footerTotalEst').innerText = '$' + totalEstTwd.toLocaleString();
-            document.getElementById('footerTotalAct').innerText = '$' + totalActTwd.toLocaleString();
         }
 
-        async function loadCardImage(id) {
-            try {
-                const database = await getDB();
-                const tx = database.transaction(STORE_NAME, 'readonly');
-                const req = tx.objectStore(STORE_NAME).get(id);
-                req.onsuccess = (e) => {
-                    if (e.target.result) {
-                        const url = URL.createObjectURL(e.target.result);
-                        const slot = document.getElementById(`img-slot-${id}`);
-                        if (slot) slot.innerHTML = `<img src="${url}" class="w-full h-full object-cover">`;
-                    }
-                };
-            } catch (e) {}
+        async function loadCardImg(id) {
+            const database = await getDB();
+            const req = database.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).get(id);
+            req.onsuccess = (e) => {
+                if (e.target.result) {
+                    const url = URL.createObjectURL(e.target.result);
+                    const el = document.getElementById(`img-${id}`);
+                    if (el) el.innerHTML = `<img src="${url}" class="w-full h-full object-cover">`;
+                }
+            };
         }
 
-        // --- Modal Control ---
-
+        // --- Modal ---
         function openModal() {
             document.getElementById('editId').value = '';
-            document.getElementById('modalTitle').innerText = '新增購物願望';
+            document.getElementById('modalTitle').innerText = '新增心願商品';
             document.getElementById('inputName').value = '';
             document.getElementById('inputJpy').value = '';
-            document.getElementById('inputTwd').value = '';
             document.getElementById('inputNote').value = '';
             document.getElementById('inputPurchased').checked = false;
             document.getElementById('inputJpyActual').value = '';
+            document.querySelector('input[name="category"][value="藥"]').checked = true;
             toggleActualPriceInput();
             document.getElementById('btnDelete').classList.add('hidden');
             clearImage();
             
-            document.getElementById('itemModal').classList.remove('hidden');
+            const modal = document.getElementById('itemModal');
+            modal.classList.remove('hidden');
             setTimeout(() => document.getElementById('modalContent').classList.remove('translate-y-full'), 10);
         }
 
         async function openEditModal(id) {
             const item = state.items.find(i => i.id === id);
             if (!item) return;
-
             document.getElementById('editId').value = item.id;
-            document.getElementById('modalTitle').innerText = '編輯商品內容';
+            document.getElementById('modalTitle').innerText = '編輯商品';
             document.getElementById('inputName').value = item.name;
             document.getElementById('inputJpy').value = item.jpyPlan;
-            document.getElementById('inputTwd').value = item.twdPlan;
             document.getElementById('inputNote').value = item.note || '';
             document.getElementById('inputPurchased').checked = item.purchased;
             document.getElementById('inputJpyActual').value = item.jpyActual || '';
+            if (item.category) {
+                const radio = document.querySelector(`input[name="category"][value="${item.category}"]`);
+                if (radio) radio.checked = true;
+            }
             toggleActualPriceInput();
             document.getElementById('btnDelete').classList.remove('hidden');
-
             clearImage();
             if (item.hasImage) {
-                try {
-                    const database = await getDB();
-                    const tx = database.transaction(STORE_NAME, 'readonly');
-                    const req = tx.objectStore(STORE_NAME).get(id);
-                    req.onsuccess = (e) => {
-                        if (e.target.result) showImagePreview(URL.createObjectURL(e.target.result));
-                    };
-                } catch(e) {}
+                const database = await getDB();
+                database.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).get(id).onsuccess = (e) => {
+                    if (e.target.result) showImgPreview(URL.createObjectURL(e.target.result));
+                };
             }
-
             document.getElementById('itemModal').classList.remove('hidden');
             setTimeout(() => document.getElementById('modalContent').classList.remove('translate-y-full'), 10);
         }
@@ -510,35 +463,24 @@
         function handleFileSelect(input) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
-                reader.onload = (e) => showImagePreview(e.target.result);
+                reader.onload = (e) => showImgPreview(e.target.result);
                 reader.readAsDataURL(input.files[0]);
             }
         }
 
-        function showImagePreview(src) {
+        function showImgPreview(src) {
             const d = document.getElementById('modalImgDisplay');
-            d.src = src;
-            d.classList.remove('hidden');
+            d.src = src; d.classList.remove('hidden');
             document.getElementById('modalImgPlaceholder').classList.add('hidden');
             document.getElementById('clearImgBtn').classList.remove('hidden');
         }
 
         function clearImage() {
             const d = document.getElementById('modalImgDisplay');
-            d.src = '';
-            d.classList.add('hidden');
+            d.src = ''; d.classList.add('hidden');
             document.getElementById('modalImgPlaceholder').classList.remove('hidden');
             document.getElementById('clearImgBtn').classList.add('hidden');
             document.getElementById('inputImgFile').value = '';
-        }
-
-        function filterList(f) {
-            state.filter = f;
-            render();
-            ['all', 'pending', 'bought'].forEach(type => {
-                const el = document.getElementById('filter-' + type);
-                el.className = `whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-colors ${state.filter === type ? 'bg-stone-800 text-white shadow-md' : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-50'}`;
-            });
         }
     </script>
 </body>
