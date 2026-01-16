@@ -1,216 +1,443 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>2026 日本購物心願清單</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>2026 日本購物共同編輯清單</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-<script src="https://cdn.tailwindcss.com"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
 
-<style>
-body {
-    font-family: 'Noto Sans TC', sans-serif;
-    background:#fafaf9;
-}
-.item-card { transition:.2s }
-.purchased-text { text-decoration: line-through; color:#a8a29e }
-</style>
+    <style>
+        :root {
+            --bg-main: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #334155;
+        }
+        
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .item-card {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .purchased-card {
+            background-color: #f0fdf4;
+            border-color: #86efac;
+        }
+
+        .purchased-text {
+            text-decoration: line-through;
+            color: #94a3b8;
+        }
+
+        .pb-safe {
+            padding-bottom: env(safe-area-inset-bottom, 20px);
+        }
+
+        @keyframes pulse-soft {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .sync-active {
+            animation: pulse-soft 2s infinite;
+        }
+    </style>
 </head>
-
 <body class="pb-32">
 
-<header class="bg-white shadow sticky top-0 z-30">
-  <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
-    <h1 class="font-bold text-lg">2026 日本購物清單</h1>
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-30">
+        <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
+                    <i class="fa-solid fa-cloud"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg text-slate-800 leading-none">日本購物共同清單</h1>
+                    <span id="syncStatus" class="text-[10px] text-amber-500 font-bold flex items-center gap-1">
+                        <i class="fa-solid fa-circle text-[6px]"></i> 正在連線中...
+                    </span>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200">
+                <span class="text-xs font-medium text-slate-500">¥1 =</span>
+                <input type="number" id="exchangeRateInput" step="0.0001" class="w-14 bg-transparent text-right font-bold text-blue-600 focus:outline-none border-b border-blue-300 text-sm" value="0.2150">
+                <span class="text-xs font-bold text-slate-600">TWD</span>
+            </div>
+        </div>
+    </header>
 
-    <div class="flex items-center gap-2 bg-stone-100 px-3 py-1.5 rounded-full">
-      <span class="text-xs">¥1 =</span>
-      <input id="exchangeRateInput" type="number" step="0.0001"
-        class="w-16 bg-transparent text-right font-bold text-blue-600"
-        value="0.2150">
-      <span class="text-xs">TWD</span>
+    <!-- Main -->
+    <main class="max-w-4xl mx-auto px-4 py-6 space-y-6">
+
+        <!-- Controls -->
+        <section class="flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex gap-2 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+                <button onclick="setFilter('all')" id="filter-all" class="whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium bg-slate-800 text-white">全部</button>
+                <button onclick="setFilter('pending')" id="filter-pending" class="whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium bg-white text-slate-600 border border-slate-200">未購</button>
+                <button onclick="setFilter('bought')" id="filter-bought" class="whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium bg-white text-slate-600 border border-slate-200">已購</button>
+            </div>
+            <button onclick="openModal()" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2">
+                <i class="fa-solid fa-plus"></i> <span>新增項目</span>
+            </button>
+        </section>
+
+        <!-- List Grid -->
+        <section id="listContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div class="col-span-full py-20 text-center text-slate-400">
+                <i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i>
+                <p>同步雲端資料中...</p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer Summary -->
+    <div class="fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-md border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-20 pb-safe">
+        <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div>
+                <p class="text-[10px] uppercase tracking-wider text-slate-400 font-bold">預估總金額</p>
+                <p id="footerTotalEst" class="text-xl font-bold text-slate-800">$0</p>
+            </div>
+            <div class="text-right">
+                <p class="text-[10px] uppercase tracking-wider text-emerald-500 font-bold">共用已支出</p>
+                <p id="footerTotalAct" class="text-xl font-black text-emerald-600">$0</p>
+            </div>
+        </div>
     </div>
-  </div>
-</header>
 
-<main class="max-w-4xl mx-auto px-4 py-6 space-y-6">
+    <!-- Modal -->
+    <div id="itemModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeModal()"></div>
+        <div class="absolute inset-x-0 bottom-0 md:top-1/2 md:bottom-auto md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 w-full md:w-[500px] bg-white md:rounded-2xl rounded-t-2xl shadow-2xl p-6 transition-all transform duration-300 translate-y-full md:translate-y-0" id="modalContent">
+            
+            <div class="flex justify-between items-center mb-5">
+                <h3 id="modalTitle" class="text-xl font-bold text-slate-800">編輯項目</h3>
+                <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
 
-<!-- 控制區 -->
-<section class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <input type="hidden" id="editId">
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">商品名稱</label>
+                    <input id="inputName" type="text" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-400 outline-none font-bold" placeholder="輸入名稱">
+                </div>
 
-  <div class="flex gap-2">
-    <button onclick="filterList('all')" id="filter-all"
-      class="px-4 py-2 rounded-full bg-stone-800 text-white">全部</button>
-    <button onclick="filterList('pending')" id="filter-pending"
-      class="px-4 py-2 rounded-full border">未購</button>
-    <button onclick="filterList('bought')" id="filter-bought"
-      class="px-4 py-2 rounded-full border">已購</button>
-  </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">日幣價格 (JPY)</label>
+                        <input id="inputJpy" type="number" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="0">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">台灣市價 (TWD)</label>
+                        <input id="inputTwd" type="number" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="0">
+                    </div>
+                </div>
 
-  <div class="flex gap-2">
-    <button onclick="exportData()"
-      class="px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold">
-      <i class="fa-solid fa-file-export"></i> 匯出
-    </button>
+                <div class="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input id="inputPurchased" type="checkbox" class="w-5 h-5 text-blue-600 rounded border-slate-300" onchange="toggleActualPriceInput()">
+                        <span class="font-bold text-slate-700 text-sm">此商品已購得</span>
+                    </label>
+                    <div id="actualPriceContainer" class="hidden mt-3">
+                        <label class="block text-xs text-slate-500 mb-1">實際購入價 (JPY)</label>
+                        <input id="inputJpyActual" type="number" class="w-full p-2 bg-white border border-slate-200 rounded-lg font-bold text-emerald-600" placeholder="0">
+                    </div>
+                </div>
 
-    <label class="px-4 py-2 rounded-xl bg-amber-500 text-white font-bold cursor-pointer">
-      <i class="fa-solid fa-file-import"></i> 匯入
-      <input type="file" accept=".json" hidden onchange="importData(this)">
-    </label>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">備註 (由誰購買/規格)</label>
+                    <textarea id="inputNote" rows="2" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm"></textarea>
+                </div>
 
-    <button onclick="openModal()"
-      class="px-4 py-2 rounded-xl bg-blue-600 text-white font-bold">
-      <i class="fa-solid fa-plus"></i> 新增
-    </button>
-  </div>
-</section>
-
-<section id="listContainer"
-  class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></section>
-
-</main>
-
-<!-- Footer -->
-<div class="fixed bottom-0 w-full bg-white border-t">
-  <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between">
-    <div>
-      <div class="text-xs text-stone-400">預估</div>
-      <div id="footerTotalEst" class="font-bold">$0</div>
+                <div class="flex gap-3 pt-4">
+                    <button type="button" onclick="deleteItem()" id="btnDelete" class="hidden px-5 py-3 bg-rose-50 text-rose-500 rounded-xl font-bold">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                    <button type="button" onclick="handleSave()" id="btnSave" class="flex-1 bg-slate-800 text-white py-3 rounded-xl font-bold shadow-lg active:scale-95 transition-transform">
+                        儲存至雲端
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
-    <div class="text-right">
-      <div class="text-xs text-emerald-500">已購</div>
-      <div id="footerTotalAct" class="font-bold">$0</div>
-    </div>
-  </div>
-</div>
 
-<script>
-let state = {
-  rate: 0.215,
-  items: [],
-  filter: 'all'
-};
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, query, orderBy, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-window.addEventListener('load', () => {
-  const r = localStorage.getItem('exchangeRate_2026');
-  if (r) state.rate = parseFloat(r);
-  exchangeRateInput.value = state.rate;
+        // Firebase Configuration
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'japan-shopping-2026';
 
-  const items = localStorage.getItem('wishlist_items_2026');
-  if (items) state.items = JSON.parse(items);
+        // Global State
+        let items = [];
+        let currentFilter = 'all';
+        let exchangeRate = 0.2150;
+        let currentUser = null;
 
-  exchangeRateInput.oninput = e => {
-    state.rate = parseFloat(e.target.value);
-    localStorage.setItem('exchangeRate_2026', state.rate);
-    render();
-  };
+        // 初始化
+        async function init() {
+            // 匯率初始化 (同步進行)
+            const savedRate = localStorage.getItem('exchangeRate_Japan');
+            if (savedRate) {
+                exchangeRate = parseFloat(savedRate);
+                document.getElementById('exchangeRateInput').value = exchangeRate;
+            }
 
-  render();
-});
+            // [RULE 3] Auth Before Queries - 確保登入完成才執行監聽
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Auth failed:", error);
+                const statusEl = document.getElementById('syncStatus');
+                statusEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> 驗證失敗';
+                statusEl.className = 'text-[10px] text-rose-500 font-bold flex items-center gap-1';
+            }
 
-/* ---------- 匯出 ---------- */
-function exportData() {
-  const data = {
-    version: 1,
-    exportedAt: new Date().toISOString(),
-    rate: state.rate,
-    items: state.items
-  };
-  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'japan-wishlist-2026.json';
-  a.click();
-}
+            // 監聽登入狀態變動
+            onAuthStateChanged(auth, (user) => {
+                currentUser = user;
+                if (user) {
+                    const statusEl = document.getElementById('syncStatus');
+                    statusEl.innerHTML = '<i class="fa-solid fa-circle text-[6px]"></i> 已即時連線';
+                    statusEl.className = 'text-[10px] text-emerald-500 font-bold flex items-center gap-1';
+                    
+                    // [RULE 1] 使用嚴格路徑並啟動監聽
+                    startSync();
+                }
+            });
+        }
 
-/* ---------- 匯入 ---------- */
-function importData(input) {
-  const file = input.files[0];
-  if (!file) return;
+        function startSync() {
+            if (!currentUser) return;
+            
+            // [RULE 2] 無複雜查詢，避免索引問題
+            const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'shoppingList'));
+            
+            onSnapshot(q, (snapshot) => {
+                items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                render();
+            }, (error) => {
+                console.error("Snapshot error:", error);
+                // 如果權限錯誤，通常是因為登入失效
+                if (error.code === 'permission-denied') {
+                    document.getElementById('syncStatus').innerText = "權限不足，請重新整理";
+                }
+            });
+        }
 
-  if (!confirm('匯入後會覆蓋目前清單，確定繼續？')) {
-    input.value = '';
-    return;
-  }
+        // 渲染畫面
+        function render() {
+            const container = document.getElementById('listContainer');
+            container.innerHTML = '';
 
-  const reader = new FileReader();
-  reader.onload = e => {
-    try {
-      const data = JSON.parse(e.target.result);
-      if (!data.items || !Array.isArray(data.items)) {
-        alert('檔案格式錯誤');
-        return;
-      }
-      state.items = data.items;
-      state.rate = data.rate || state.rate;
+            let totalEst = 0;
+            let totalAct = 0;
 
-      localStorage.setItem('wishlist_items_2026', JSON.stringify(state.items));
-      localStorage.setItem('exchangeRate_2026', state.rate);
-      exchangeRateInput.value = state.rate;
+            const filteredItems = items.filter(item => {
+                if (currentFilter === 'pending') return !item.purchased;
+                if (currentFilter === 'bought') return item.purchased;
+                return true;
+            });
 
-      render();
-      alert('匯入完成（圖片需重新上傳）');
-    } catch {
-      alert('讀取失敗');
-    }
-  };
-  reader.readAsText(file);
-  input.value = '';
-}
+            items.forEach(item => {
+                totalEst += Math.round((item.jpyPlan || 0) * exchangeRate);
+                if (item.purchased) {
+                    totalAct += Math.round((item.jpyActual || item.jpyPlan || 0) * exchangeRate);
+                }
+            });
 
-/* ---------- 渲染 ---------- */
-function render() {
-  const c = listContainer;
-  c.innerHTML = '';
-  let est = 0, act = 0;
+            if (filteredItems.length === 0) {
+                container.innerHTML = `<div class="col-span-full py-20 text-center text-slate-400">目前沒有項目</div>`;
+            }
 
-  state.items.forEach(i => {
-    est += i.jpyPlan * state.rate;
-    if (i.purchased) act += i.jpyActual * state.rate;
-  });
+            filteredItems.forEach(item => {
+                const planTwd = Math.round((item.jpyPlan || 0) * exchangeRate);
+                const actualTwd = Math.round((item.jpyActual || item.jpyPlan || 0) * exchangeRate);
 
-  const list = state.items.filter(i =>
-    state.filter==='all' ||
-    (state.filter==='pending' && !i.purchased) ||
-    (state.filter==='bought' && i.purchased)
-  );
+                const card = document.createElement('div');
+                card.className = `item-card relative bg-white rounded-2xl p-4 shadow-sm border ${item.purchased ? 'purchased-card border-emerald-200' : 'border-slate-100 hover:shadow-md'}`;
+                
+                card.innerHTML = `
+                    <div class="flex flex-col h-full">
+                        <div class="flex-1 cursor-pointer mb-4" onclick="window.openEdit('${item.id}')">
+                            <div class="flex justify-between items-start">
+                                <h3 class="font-bold text-slate-800 truncate pr-2 ${item.purchased ? 'purchased-text' : ''}">${item.name}</h3>
+                                ${item.purchased ? '<span class="bg-emerald-500 text-white text-[10px] px-2 py-0.5 rounded-full">已購</span>' : ''}
+                            </div>
+                            <p class="text-[10px] text-slate-400 mt-1 line-clamp-1">${item.note || '點擊編輯詳情'}</p>
+                        </div>
+                        
+                        <div class="flex justify-between items-end border-t border-slate-50 pt-3">
+                            <div>
+                                <div class="text-[10px] text-slate-400 font-bold uppercase">價格預估</div>
+                                <div class="font-bold text-lg ${item.purchased ? 'text-emerald-700' : 'text-slate-800'}">
+                                    ¥${(item.purchased ? (item.jpyActual || item.jpyPlan) : item.jpyPlan).toLocaleString()}
+                                </div>
+                                <div class="text-[10px] text-slate-500">NT$${(item.purchased ? actualTwd : planTwd).toLocaleString()}</div>
+                            </div>
+                            <button onclick="window.toggleStatus('${item.id}')" class="w-10 h-10 rounded-full flex items-center justify-center transition-all ${item.purchased ? 'bg-emerald-500 text-white shadow-lg' : 'bg-slate-50 text-slate-300 border border-slate-200'}">
+                                <i class="fa-solid fa-check"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
 
-  if (!list.length) {
-    c.innerHTML = '<div class="col-span-full text-center text-stone-400 py-20">沒有項目</div>';
-  }
+            document.getElementById('footerTotalEst').innerText = '$' + totalEst.toLocaleString();
+            document.getElementById('footerTotalAct').innerText = '$' + totalAct.toLocaleString();
+        }
 
-  list.forEach(i => {
-    const d = document.createElement('div');
-    d.className = 'item-card bg-white rounded-xl p-4 shadow';
-    d.innerHTML = `
-      <h3 class="font-bold ${i.purchased?'purchased-text':''}">${i.name}</h3>
-      <div class="text-sm">¥${i.purchased?i.jpyActual:i.jpyPlan}</div>
-      <button onclick="toggleItem('${i.id}')"
-        class="mt-2 text-xs px-3 py-1 rounded bg-stone-200">
-        ${i.purchased?'取消':'已買'}
-      </button>`;
-    c.appendChild(d);
-  });
+        // 修改狀態
+        window.toggleStatus = async (id) => {
+            if (!currentUser) return;
+            const item = items.find(i => i.id === id);
+            if (!item) return;
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'shoppingList', id);
+            await setDoc(docRef, { 
+                ...item, 
+                purchased: !item.purchased,
+                updatedAt: Date.now()
+            }, { merge: true });
+        };
 
-  footerTotalEst.innerText = '$' + Math.round(est).toLocaleString();
-  footerTotalAct.innerText = '$' + Math.round(act).toLocaleString();
-}
+        // 儲存或更新
+        window.handleSave = async () => {
+            if (!currentUser) return;
+            const btn = document.getElementById('btnSave');
+            btn.disabled = true;
+            btn.innerText = '正在同步...';
 
-function toggleItem(id) {
-  const i = state.items.find(x=>x.id===id);
-  i.purchased = !i.purchased;
-  if (i.purchased && !i.jpyActual) i.jpyActual = i.jpyPlan;
-  localStorage.setItem('wishlist_items_2026', JSON.stringify(state.items));
-  render();
-}
+            const id = document.getElementById('editId').value || Date.now().toString();
+            const name = document.getElementById('inputName').value.trim();
+            if (!name) { btn.disabled = false; btn.innerText = '儲存項目'; return; }
 
-function filterList(f) {
-  state.filter = f;
-  render();
-}
-</script>
+            const jpyPlan = parseFloat(document.getElementById('inputJpy').value) || 0;
+            const twdPlan = parseFloat(document.getElementById('inputTwd').value) || 0;
+            const purchased = document.getElementById('inputPurchased').checked;
+            const jpyActual = purchased ? (parseFloat(document.getElementById('inputJpyActual').value) || jpyPlan) : 0;
+            const note = document.getElementById('inputNote').value;
 
+            try {
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'shoppingList', id);
+                await setDoc(docRef, {
+                    name, jpyPlan, twdPlan, purchased, jpyActual, note,
+                    updatedAt: Date.now()
+                });
+                window.closeModal();
+            } catch (e) {
+                console.error("Save error:", e);
+                alert("存檔失敗，請確認是否具備權限");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = '儲存至雲端';
+            }
+        };
+
+        // 刪除
+        window.deleteItem = async () => {
+            if (!currentUser) return;
+            const id = document.getElementById('editId').value;
+            if (id && confirm('確定要從共同清單刪除此項嗎？所有人將同步移除。')) {
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'shoppingList', id);
+                await deleteDoc(docRef);
+                window.closeModal();
+            }
+        };
+
+        // UI 導航與過濾
+        window.openEdit = (id) => {
+            const item = items.find(i => i.id === id);
+            if (!item) return;
+            document.getElementById('editId').value = item.id;
+            document.getElementById('modalTitle').innerText = '編輯商品';
+            document.getElementById('inputName').value = item.name;
+            document.getElementById('inputJpy').value = item.jpyPlan || 0;
+            document.getElementById('inputTwd').value = item.twdPlan || 0;
+            document.getElementById('inputPurchased').checked = item.purchased || false;
+            document.getElementById('inputJpyActual').value = item.jpyActual || 0;
+            document.getElementById('inputNote').value = item.note || '';
+            document.getElementById('btnDelete').classList.remove('hidden');
+            window.toggleActualPriceInput();
+            window.openModalUI();
+        };
+
+        window.setFilter = (f) => {
+            currentFilter = f;
+            ['all', 'pending', 'bought'].forEach(type => {
+                const el = document.getElementById('filter-' + type);
+                el.className = `whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-colors ${currentFilter === type ? 'bg-slate-800 text-white shadow-md' : 'bg-white text-slate-600 border border-slate-200'}`;
+            });
+            render();
+        };
+
+        document.getElementById('exchangeRateInput').addEventListener('input', (e) => {
+            exchangeRate = parseFloat(e.target.value) || 0;
+            localStorage.setItem('exchangeRate_Japan', exchangeRate);
+            render();
+        });
+
+        init();
+    </script>
+
+    <script>
+        // 非同步相關 UI 邏輯
+        function openModal() {
+            document.getElementById('editId').value = '';
+            document.getElementById('modalTitle').innerText = '新增項目';
+            document.getElementById('inputName').value = '';
+            document.getElementById('inputJpy').value = '';
+            document.getElementById('inputTwd').value = '';
+            document.getElementById('inputPurchased').checked = false;
+            document.getElementById('inputJpyActual').value = '';
+            document.getElementById('inputNote').value = '';
+            document.getElementById('btnDelete').classList.add('hidden');
+            toggleActualPriceInput();
+            openModalUI();
+        }
+
+        function openModalUI() {
+            document.getElementById('itemModal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('modalContent').classList.remove('translate-y-full'), 10);
+        }
+
+        function closeModal() {
+            document.getElementById('modalContent').classList.add('translate-y-full');
+            setTimeout(() => document.getElementById('itemModal').classList.add('hidden'), 300);
+        }
+
+        function toggleActualPriceInput() {
+            const checked = document.getElementById('inputPurchased').checked;
+            const container = document.getElementById('actualPriceContainer');
+            if (container) container.classList.toggle('hidden', !checked);
+        }
+    </script>
 </body>
 </html>
