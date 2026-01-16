@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2026 日本購物心願清單</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+<style>
+body {
+    font-family: 'Noto Sans TC', sans-serif;
+    background:#fafaf9;
+}
+.item-card { transition:.2s }
+.purchased-text { text-decoration: line-through; color:#a8a29e }
+</style>
+</head>
+
+<body class="pb-32">
+
+<header class="bg-white shadow sticky top-0 z-30">
+  <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
+    <h1 class="font-bold text-lg">2026 日本購物清單</h1>
+
+    <div class="flex items-center gap-2 bg-stone-100 px-3 py-1.5 rounded-full">
+      <span class="text-xs">¥1 =</span>
+      <input id="exchangeRateInput" type="number" step="0.0001"
+        class="w-16 bg-transparent text-right font-bold text-blue-600"
+        value="0.2150">
+      <span class="text-xs">TWD</span>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-4xl mx-auto px-4 py-6 space-y-6">
+
+<!-- 控制區 -->
+<section class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+
+  <div class="flex gap-2">
+    <button onclick="filterList('all')" id="filter-all"
+      class="px-4 py-2 rounded-full bg-stone-800 text-white">全部</button>
+    <button onclick="filterList('pending')" id="filter-pending"
+      class="px-4 py-2 rounded-full border">未購</button>
+    <button onclick="filterList('bought')" id="filter-bought"
+      class="px-4 py-2 rounded-full border">已購</button>
+  </div>
+
+  <div class="flex gap-2">
+    <button onclick="exportData()"
+      class="px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold">
+      <i class="fa-solid fa-file-export"></i> 匯出
+    </button>
+
+    <label class="px-4 py-2 rounded-xl bg-amber-500 text-white font-bold cursor-pointer">
+      <i class="fa-solid fa-file-import"></i> 匯入
+      <input type="file" accept=".json" hidden onchange="importData(this)">
+    </label>
+
+    <button onclick="openModal()"
+      class="px-4 py-2 rounded-xl bg-blue-600 text-white font-bold">
+      <i class="fa-solid fa-plus"></i> 新增
+    </button>
+  </div>
+</section>
+
+<section id="listContainer"
+  class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></section>
+
+</main>
+
+<!-- Footer -->
+<div class="fixed bottom-0 w-full bg-white border-t">
+  <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between">
+    <div>
+      <div class="text-xs text-stone-400">預估</div>
+      <div id="footerTotalEst" class="font-bold">$0</div>
+    </div>
+    <div class="text-right">
+      <div class="text-xs text-emerald-500">已購</div>
+      <div id="footerTotalAct" class="font-bold">$0</div>
+    </div>
+  </div>
+</div>
+
+<script>
+let state = {
+  rate: 0.215,
+  items: [],
+  filter: 'all'
+};
+
+window.addEventListener('load', () => {
+  const r = localStorage.getItem('exchangeRate_2026');
+  if (r) state.rate = parseFloat(r);
+  exchangeRateInput.value = state.rate;
+
+  const items = localStorage.getItem('wishlist_items_2026');
+  if (items) state.items = JSON.parse(items);
+
+  exchangeRateInput.oninput = e => {
+    state.rate = parseFloat(e.target.value);
+    localStorage.setItem('exchangeRate_2026', state.rate);
+    render();
+  };
+
+  render();
+});
+
+/* ---------- 匯出 ---------- */
+function exportData() {
+  const data = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    rate: state.rate,
+    items: state.items
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'japan-wishlist-2026.json';
+  a.click();
+}
+
+/* ---------- 匯入 ---------- */
+function importData(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  if (!confirm('匯入後會覆蓋目前清單，確定繼續？')) {
+    input.value = '';
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.items || !Array.isArray(data.items)) {
+        alert('檔案格式錯誤');
+        return;
+      }
+      state.items = data.items;
+      state.rate = data.rate || state.rate;
+
+      localStorage.setItem('wishlist_items_2026', JSON.stringify(state.items));
+      localStorage.setItem('exchangeRate_2026', state.rate);
+      exchangeRateInput.value = state.rate;
+
+      render();
+      alert('匯入完成（圖片需重新上傳）');
+    } catch {
+      alert('讀取失敗');
+    }
+  };
+  reader.readAsText(file);
+  input.value = '';
+}
+
+/* ---------- 渲染 ---------- */
+function render() {
+  const c = listContainer;
+  c.innerHTML = '';
+  let est = 0, act = 0;
+
+  state.items.forEach(i => {
+    est += i.jpyPlan * state.rate;
+    if (i.purchased) act += i.jpyActual * state.rate;
+  });
+
+  const list = state.items.filter(i =>
+    state.filter==='all' ||
+    (state.filter==='pending' && !i.purchased) ||
+    (state.filter==='bought' && i.purchased)
+  );
+
+  if (!list.length) {
+    c.innerHTML = '<div class="col-span-full text-center text-stone-400 py-20">沒有項目</div>';
+  }
+
+  list.forEach(i => {
+    const d = document.createElement('div');
+    d.className = 'item-card bg-white rounded-xl p-4 shadow';
+    d.innerHTML = `
+      <h3 class="font-bold ${i.purchased?'purchased-text':''}">${i.name}</h3>
+      <div class="text-sm">¥${i.purchased?i.jpyActual:i.jpyPlan}</div>
+      <button onclick="toggleItem('${i.id}')"
+        class="mt-2 text-xs px-3 py-1 rounded bg-stone-200">
+        ${i.purchased?'取消':'已買'}
+      </button>`;
+    c.appendChild(d);
+  });
+
+  footerTotalEst.innerText = '$' + Math.round(est).toLocaleString();
+  footerTotalAct.innerText = '$' + Math.round(act).toLocaleString();
+}
+
+function toggleItem(id) {
+  const i = state.items.find(x=>x.id===id);
+  i.purchased = !i.purchased;
+  if (i.purchased && !i.jpyActual) i.jpyActual = i.jpyPlan;
+  localStorage.setItem('wishlist_items_2026', JSON.stringify(state.items));
+  render();
+}
+
+function filterList(f) {
+  state.filter = f;
+  render();
+}
+</script>
+
+</body>
+</html>
